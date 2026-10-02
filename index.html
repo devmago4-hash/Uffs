@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Simulador de Tornado 3D</title>
+<style>
+:root{--bg:#10121a;--p:#161921;--b:#2d323c;--t:#ebedf2;--s:#96a0ac;--a:#ffb23e}
+*{box-sizing:border-box;margin:0}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--t);font:14px/1.3 system-ui,sans-serif;touch-action:none;user-select:none;-webkit-user-select:none}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block}
+.bar{position:fixed;left:0;right:0;top:0;padding:calc(8px + env(safe-area-inset-top,0px)) 10px 8px;background:#10121acc;border-bottom:1px solid var(--b);display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.bar h1{font-size:14px;letter-spacing:.04em;color:var(--a);margin-right:auto;text-transform:uppercase}
+button,select{background:var(--p);color:var(--t);border:1px solid var(--b);border-radius:8px;padding:8px 11px;font:inherit}
+button.go{background:var(--a);color:#1a1200;border-color:var(--a);font-weight:700}
+#fase{position:fixed;left:10px;right:10px;top:calc(96px + env(safe-area-inset-top,0px));font-weight:600;color:var(--a);text-shadow:0 1px 4px #000}
+#stat{font-weight:400;color:#dfe4ea;font-size:12px}
+#joy{position:fixed;left:18px;bottom:calc(22px + env(safe-area-inset-bottom,0px));width:120px;height:120px;border-radius:50%;background:#ffffff1c;border:2px solid #ffffff44}
+#knob{position:absolute;left:40px;top:40px;width:40px;height:40px;border-radius:50%;background:#ffffffaa}
+.ud{position:fixed;right:18px;bottom:calc(22px + env(safe-area-inset-bottom,0px));display:flex;flex-direction:column;gap:12px}
+.ud button{width:54px;height:54px;font-size:24px;border-radius:50%;background:#ffffff22}
+#dica{position:fixed;left:0;right:0;bottom:calc(150px + env(safe-area-inset-bottom,0px));text-align:center;color:#dfe4ea;font-size:12px;text-shadow:0 1px 3px #000;pointer-events:none;padding:0 14px}
+</style>
+</head>
+<body>
+<div class="bar">
+ <h1>Tornado 3D</h1>
+ <select id="ef"><option>EF0</option><option>EF1</option><option selected>EF2</option><option>EF3</option><option>EF4</option><option>EF5</option></select>
+ <button class="go" id="ini">▶ Iniciar</button>
+ <button id="pau">⏯</button>
+ <button id="rei">↻</button>
+</div>
+<div id="fase">Fase: Calmaria<div id="stat"></div></div>
+<div id="dica">Arraste a tela para olhar. Manche = andar. ▲▼ = subir/descer.</div>
+<div id="joy"><div id="knob"></div></div>
+<div class="ud"><button id="up">▲</button><button id="dn">▼</button></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const EF={EF0:[29,38,40],EF1:[39,49,55],EF2:[50,60,70],EF3:[61,74,90],EF4:[75,89,110],EF5:[90,130,140]};
+const NOMES=['Calmaria','Instabilidade','Wall Cloud','Funil','Toque no solo','Maduro','Enfraquecendo','Rope-out','Dissipado'];
+const DUR=[0,6,5,4,3,14,6,4,0];
+const L=(a,b,t)=>a+(b-a)*Math.max(0,Math.min(1,t));
+const V=THREE.Vector3;
+const scene=new THREE.Scene();
+const cam=new THREE.PerspectiveCamera(70,1,.1,600);cam.rotation.order='YXZ';
+const ren=new THREE.WebGLRenderer({antialias:false});ren.setPixelRatio(Math.min(devicePixelRatio,2));
+document.body.prepend(ren.domElement);
+function rs(){ren.setSize(innerWidth,innerHeight);cam.aspect=innerWidth/innerHeight;cam.updateProjectionMatrix()}
+addEventListener('resize',rs);rs();
+const amb=new THREE.AmbientLight(0xffffff,.65),sun=new THREE.DirectionalLight(0xffffff,.7);sun.position.set(30,60,20);
+scene.add(amb,sun);
+const gnd=new THREE.Mesh(new THREE.PlaneGeometry(1200,1200),new THREE.MeshLambertMaterial({color:0x5a8a45}));
+gnd.rotation.x=-Math.PI/2;scene.add(gnd);
+const mat=c=>new THREE.MeshLambertMaterial({color:c});
+let bodies=[],T,clouds=[],cx,cz;
+let yaw=.3,pit=-.1,cp=new V(-10,8,-45),run=false,flash=0,nextL=5;
+const funnel=new THREE.Points(new THREE.BufferGeometry(),new THREE.PointsMaterial({color:0xb9bec6,size:.9,transparent:true,opacity:.75}));
+funnel.frustumCulled=false;scene.add(funnel);
+const NF=2600,fd=[];for(let i=0;i<NF;i++)fd.push({a:Math.random()*6.28,h:Math.pow(Math.random(),.8),j:Math.random()});
+funnel.geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(NF*3),3));
+const NR=900,rain=new THREE.Points(new THREE.BufferGeometry(),new THREE.PointsMaterial({color:0x9db4d0,size:.35,transparent:true,opacity:.7}));
+rain.frustumCulled=false;scene.add(rain);
+rain.geometry.setAttribute('position',new THREE.BufferAttribute(new Float32Array(NR*3),3));
+const rd=[];for(let i=0;i<NR;i++)rd.push([Math.random()*2-1,Math.random()*45,Math.random()*2-1]);
+function box(w,h,d,c,x,y,z,res,m){const o=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),mat(c));o.position.set(x,y,z);scene.add(o);
+ bodies.push({o,res,m:m||1,v:new V(),free:false,sp:new V((Math.random()-.5)*3,(Math.random()-.5)*3,(Math.random()-.5)*3)});return o}
+function build(){
+ bodies.forEach(b=>scene.remove(b.o));bodies=[];clouds.forEach(c=>scene.remove(c));clouds=[];
+ const hx=20,hz=-1,pc=0xdcc8aa;
+ box(10,3,.3,pc,hx,1.5,hz-4,1);box(10,3,.3,pc,hx,1.5,hz+4,1);box(.3,3,8,pc,hx-5,1.5,hz,1);box(.3,3,8,pc,hx+5,1.5,hz,1);
+ [-1,1].forEach(s=>{const r=box(5.6,.3,8.6,0xa03c32,hx+s*2.5,4.1,hz,.6);r.rotation.z=-s*.4});
+ box(1.8,.35,.1,0x96d2f0,hx-3,1.8,hz-4.2,.2);box(1.8,.35,.1,0x96d2f0,hx+2.4,1.8,hz-4.2,.2);box(1.4,1.7,.1,0x785032,hx,.85,hz-4.2,.5);
+ box(1.8,1.4,4.2,0xb41e1e,10,.7,-9,3,3);box(.5,.7,.5,0x5a5a5f,21,.35,4,.3,.3);box(.25,6.5,.25,0x4b3a2a,4,3.25,-2,2.2,2);
+ for(let i=0;i<7;i++){const a=i*Math.PI*2/7,r=15+Math.random()*10;
+  const c=new THREE.Mesh(new THREE.PlaneGeometry(26,26),new THREE.MeshBasicMaterial({color:0x464650,transparent:true,opacity:.55,side:2}));
+  c.rotation.x=-Math.PI/2;c.position.set(Math.cos(a)*r-40,45,Math.sin(a)*r-25);c.userData.i=i;scene.add(c);clouds.push(c)}
+ const e=EF[document.getElementById('ef').value];
+ T={S:e,ph:0,t:0,tt:0,f:0,v:0,r:0,c:new THREE.Vector2(-40,-25),vel:new THREE.Vector2(6+Math.random()*4,-2+Math.random()*4)};
+ cp.set(-10,8,-45);yaw=.3;pit=-.1;run=false;flash=0;
+}
+function wind(x,z){if(T.v<.001||T.r<.001)return[0,0,0];
+ const dx=x-T.c.x,dz=z-T.c.y,r=Math.hypot(dx,dz);if(r<1e-6)return[0,0,0];
+ const s=r<=T.r?T.v*r/T.r:T.v*T.r/r;return[-dz/r*s,dx/r*s,s]}
+function tstep(dt){
+ const S=T.S,vmin=S[0],vmax=S[1],R=S[2];T.t+=dt;T.tt+=dt;
+ const u=T.t/(DUR[T.ph]||1),p=T.ph;
+ const tb=[null,[0,0,0,.3*vmin,0,.15*R],[0,.35,.3*vmin,.6*vmin,.15*R,.35*R],[.35,.7,.6*vmin,.9*vmin,.35*R,.6*R],[.7,1,.9*vmin,vmax,.6*R,R],null,[1,.6,vmax,.5*vmin,R,.4*R],[.6,.1,.5*vmin,0,.4*R,.1*R]];
+ if(p==0||p==8){T.f=0;T.v=0;if(p==0)T.r=0}
+ else if(p==5){const g=Math.sin(T.tt*1.7)*.08+Math.sin(T.tt*.6)*.05;T.f=1;T.v=vmax*(1+g);T.r=R*(1+g*.3)}
+ else{const q=tb[p];T.f=L(q[0],q[1],u);T.v=L(q[2],q[3],u);T.r=L(q[4],q[5],u)}
+ if(p>0&&p<8&&T.t>=DUR[p]){T.ph++;T.t=0}
+ const g=p>=4&&p<=7?1:.3;T.c.x+=T.vel.x*dt*g;T.c.y+=T.vel.y*dt*g;
+ T.vel.x+=(Math.random()-.5)*.6*dt*60/60;T.vel.y+=(Math.random()-.5)*.6*dt*60/60;
+}
+function physics(dt){
+ bodies.forEach(b=>{const p=b.o.position;
+  if(!b.free){const w=wind(p.x,p.z);if(w[2]>18*b.res)b.free=true;return}
+  const w=wind(p.x,p.z),r=Math.hypot(p.x-T.c.x,p.z-T.c.y),up=T.v*.6*Math.exp(-r*r/(2*T.r*T.r||1));
+  b.v.x+=w[0]*dt*.8/b.m;b.v.z+=w[1]*dt*.8/b.m;b.v.y+=(up*.5-6)*dt/b.m*Math.min(b.m,1.5);
+  b.v.multiplyScalar(Math.pow(.985,dt*60));p.addScaledVector(b.v,dt);
+  b.o.rotation.x+=b.sp.x*dt;b.o.rotation.y+=b.sp.y*dt;b.o.rotation.z+=b.sp.z*dt;
+  if(p.y<.3){p.y=.3;if(b.v.y<0)b.v.y*=-.3;b.v.x*=.95;b.v.z*=.95}});
+ clouds.forEach(c=>{c.position.x+=(T.c.x-c.position.x)*dt*.05;c.position.z+=(T.c.y-c.position.z)*dt*.05;
+  const s=1+.15*Math.sin(T.tt*.5+c.userData.i);c.scale.set(s,s,1)});
+}
+function draw(){
+ const pa=funnel.geometry.attributes.position,H=45,bot=H*(1-T.f),vis=T.f>.02&&T.v>.5;
+ funnel.visible=vis;
+ if(vis)for(let i=0;i<NF;i++){const d=fd[i],h=d.h,y=bot+h*(H-bot);
+  const rad=T.r*(.04+.3*h*h)*(.4+.6*T.f)*(.7+.6*d.j);
+  const a=d.a+T.tt*(1.5+T.v*.04)*(1.4-h*.6),sw=Math.sin(T.tt*.8+h*3)*1.5*h;
+  pa.setXYZ(i,T.c.x+Math.cos(a)*rad+sw,y,T.c.y+Math.sin(a)*rad)}
+ pa.needsUpdate=true;
+ const ra=rain.geometry.attributes.position,on=T.ph>=1&&T.ph<=7;rain.visible=on;
+ if(on)for(let i=0;i<NR;i++){const q=rd[i];q[1]-=.9;if(q[1]<0)q[1]=45;ra.setXYZ(i,cam.position.x+q[0]*45,q[1],cam.position.z+q[2]*45)}
+ ra.needsUpdate=true;
+ const dark=T.ph==0?0:T.ph==8?.4:Math.min(1,.2+T.ph*.15);
+ const c=new THREE.Color().setHSL(.58,.25*(1-dark)+.05,L(.7,.16,dark)+flash*.5);
+ scene.background=c;scene.fog=new THREE.Fog(c,40,L(400,160,dark));
+ amb.intensity=.65-dark*.3+flash*1.2;
+}
+function lightning(dt){if(T.ph>=2&&T.ph<=6){nextL-=dt;if(nextL<=0){flash=.5+Math.random()*.5;nextL=2+Math.random()*5}}if(flash>0)flash=Math.max(0,flash-dt*2.2)}
+const keys={},jv={x:0,y:0};let up=0,dn=0;
+addEventListener('keydown',e=>keys[e.code]=1);addEventListener('keyup',e=>keys[e.code]=0);
+function camstep(dt){
+ const sp=14*dt;let f=jv.y*-1+(keys.KeyW?1:0)-(keys.KeyS?1:0),r=jv.x+(keys.KeyD?1:0)-(keys.KeyA?1:0);
+ cp.x+=Math.sin(yaw)*f*sp-Math.cos(yaw)*r*sp;cp.z+=Math.cos(yaw)*f*sp+Math.sin(yaw)*r*sp;
+ cp.y+=((up||keys.KeyE?1:0)-(dn||keys.KeyQ?1:0))*sp;if(cp.y<1)cp.y=1;
+ yaw+=((keys.ArrowLeft?1:0)-(keys.ArrowRight?1:0))*1.6*dt;pit=Math.max(-1.4,Math.min(1.4,pit+((keys.ArrowUp?1:0)-(keys.ArrowDown?1:0))*1.6*dt));
+ cam.position.copy(cp);cam.rotation.set(pit,yaw+Math.PI,0);
+}
+let ld=null;const cv=ren.domElement;
+cv.addEventListener('pointerdown',e=>{ld={id:e.pointerId,x:e.clientX,y:e.clientY};cv.setPointerCapture(e.pointerId)});
+cv.addEventListener('pointermove',e=>{if(!ld||e.pointerId!=ld.id)return;yaw-=(e.clientX-ld.x)*.005;pit=Math.max(-1.4,Math.min(1.4,pit-(e.clientY-ld.y)*.005));ld.x=e.clientX;ld.y=e.clientY});
+cv.addEventListener('pointerup',()=>ld=null);cv.addEventListener('pointercancel',()=>ld=null);
+const joy=document.getElementById('joy'),kn=document.getElementById('knob');let jid=null;
+function jm(e){const b=joy.getBoundingClientRect();let x=(e.clientX-b.left-60)/60,y=(e.clientY-b.top-60)/60,l=Math.hypot(x,y);if(l>1){x/=l;y/=l}jv.x=x;jv.y=y;kn.style.left=40+x*40+'px';kn.style.top=40+y*40+'px'}
+joy.addEventListener('pointerdown',e=>{jid=e.pointerId;joy.setPointerCapture(e.pointerId);jm(e)});
+joy.addEventListener('pointermove',e=>{if(e.pointerId==jid)jm(e)});
+const je=()=>{jid=null;jv.x=jv.y=0;kn.style.left=kn.style.top='40px'};joy.addEventListener('pointerup',je);joy.addEventListener('pointercancel',je);
+const hold=(id,fn)=>{const b=document.getElementById(id);b.addEventListener('pointerdown',()=>fn(1));['pointerup','pointerleave','pointercancel'].forEach(n=>b.addEventListener(n,()=>fn(0)))};
+hold('up',v=>up=v);hold('dn',v=>dn=v);
+document.getElementById('ini').onclick=()=>{build();T.ph=1;run=true};
+document.getElementById('pau').onclick=()=>run=!run;
+document.getElementById('rei').onclick=build;
+document.getElementById('ef').onchange=build;
+const fe=document.getElementById('fase');
+let last=performance.now(),acc=0;
+build();
+(function loop(now){requestAnimationFrame(loop);
+ let dt=Math.min(.05,(now-last)/1000);last=now;
+ camstep(dt);
+ if(run){tstep(dt);physics(dt);lightning(dt)}else if(flash>0)flash=Math.max(0,flash-dt*2.2);
+ draw();ren.render(scene,cam);
+ acc+=dt;if(acc>.25){acc=0;fe.firstChild.nodeValue='Fase: '+NOMES[T.ph]+(run?'':' (pausado)');
+  document.getElementById('stat').textContent=T.v>1?'Vento máx: '+Math.round(T.v*3.6)+' km/h':''}
+})(last);
+</script>
+</body>
+</html>
