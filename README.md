@@ -36,3 +36,6 @@ bash run-termux.sh
 - **Nuvens:** textura pré-calculada no lugar de ruído por pixel (muito menos custo por fragmento) e mais sprites, para dar densidade interna.
 - **Atmosfera (rota real):** céu azulado e relâmpagos intranuvem silenciosos (clarões e tremulação, sem trovão), conforme os relatos do dia.
 - **Escala:** objetos em 1:1. A cidade modelada tem 840×504 m, menor que a área urbana real. A expansão com a malha real (dados do OpenStreetMap) fica como trabalho futuro.
+
+## 9. Incêndios e vazamentos
+Uma zona circular (raio de 110 a 170 m, perto da trajetória) é sorteada com semente. Nela, cada casa de madeira tem 10 a 25% de chance de foco de incêndio e de água. Nas demais casas, só 10% de chance de rompimento de tubulação, com jato de água para cima. Postes e carros só pegam fogo dentro da zona. No máximo 8 jatos ficam ativos ao mesmo tempo.

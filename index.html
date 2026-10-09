@@ -152,8 +152,8 @@ function panels(h){const P=[[0,-h.d/2,h.w,.25],[0,h.d/2,h.w,.25],[-h.w/2,0,.25,h
 function Ring(n,size,add){const g=new THREE.BufferGeometry();g.setAttribute('position',new THREE.BufferAttribute(new Float32Array(n*3),3));g.setAttribute('color',new THREE.BufferAttribute(new Float32Array(n*3),3));
  const o=new THREE.Points(g,new THREE.PointsMaterial({size,map:tex,vertexColors:true,transparent:true,blending:THREE.AdditiveBlending,depthWrite:false}));o.frustumCulled=false;scene.add(o);
  return{o,n,i:0,life:new Float32Array(n),mx:new Float32Array(n).fill(1),v:new Float32Array(n*3),c:new Float32Array(n*3)}}
-const spk=Ring(200,3,1),fir=Ring(420,9,1),smk=Ring(260,26,1),wat=Ring(900,5,1);
-let bursts=[];function leak(x,z,p){if(Math.random()<p)bursts.push({x,z,t:1+Math.random()*25,dur:20+Math.random()*30,k:.6+Math.random()*.8,on:0})}
+const spk=Ring(200,3,1),fir=Ring(420,9,1),smk=Ring(260,26,1),wat=Ring(500,2.6,1);
+let bursts=[];function leak(x,z,p){if(bursts.length<8&&Math.random()<p)bursts.push({x,z,t:1+Math.random()*25,dur:20+Math.random()*30,k:.6+Math.random()*.8,on:0})}
 const emit=(r,x,y,z,vx,vy,vz,life,c)=>{const i=r.i++%r.n;r.o.geometry.attributes.position.array.set([x,y,z],i*3);r.v.set([vx,vy,vz],i*3);r.life[i]=r.mx[i]=life;r.c.set(c,i*3)};
 function stepR(r,dt,g){const P=r.o.geometry.attributes.position.array,C=r.o.geometry.attributes.color.array;for(let i=0;i<r.n;i++){const l=r.life[i];if(l>0){r.life[i]-=dt;r.v[i*3+1]-=g*dt;for(let k=0;k<3;k++){P[i*3+k]+=r.v[i*3+k]*dt;C[i*3+k]=r.c[i*3+k]*(l/r.mx[i])}}else{C[i*3]=C[i*3+1]=C[i*3+2]=0}}r.o.geometry.attributes.position.needsUpdate=r.o.geometry.attributes.color.needsUpdate=true}
 /* raio */
@@ -168,7 +168,7 @@ function build(){wr=mk(11);houses=[];trees=[];poles=[];wires=[];hmap=new Map();
   if(ok)trees.push({x,y:Hg(x,z),z,s:.8+rw()*.9,thr:24+rw()*26,st:0,p:0,dx:0,dz:0,g:.7+rw()*.5,up:rw()<.35})}
  for(const zs of[-112,0,112]){const st=poles.length;for(let x=-392;x<=392;x+=28)poles.push({x,y:0,z:zs+4,thr:30+rw()*20,st:0,p:0,dx:0,dz:0,spark:0,fire:0,pend:0,pdx:0,pdz:0,nb:[]});
   for(let i=st;i<poles.length;i++)poles[i].nb=[i>st?i-1:-1,i<poles.length-1?i+1:-1].filter(k=>k>=0);for(let i=st;i<poles.length-1;i++)for(const s of[-1,1])wires.push({a:poles[i],b:poles[i+1],s,cut:0,th:46+rw()*14,spk:0})}
- ruralBuild();cowReset();houses.forEach((h,i)=>{sH(h,i);wallsIM.setColorAt(i,h.cc);TC.set(h.rc);roofIM.setColorAt(i,TC)});wallsIM.instanceColor.needsUpdate=roofIM.instanceColor.needsUpdate=true;
+ ruralBuild();cowReset();zoneInit();houses.forEach((h,i)=>{sH(h,i);wallsIM.setColorAt(i,h.cc);TC.set(h.rc);roofIM.setColorAt(i,TC)});wallsIM.instanceColor.needsUpdate=roofIM.instanceColor.needsUpdate=true;
  for(let i=houses.length;i<NHm;i++){wallsIM.setMatrixAt(i,Zm);roofIM.setMatrixAt(i,Zm)}
  trees.forEach((t,i)=>{sT(t,i);TC.setHSL(.27+rw()*.06,.45,.2+rw()*.1);crownIM.setColorAt(i,TC)});crownIM.instanceColor.needsUpdate=true;for(let i=trees.length;i<NTm;i++){trunkIM.setMatrixAt(i,Zm);crownIM.setMatrixAt(i,Zm)}
  cars=[];for(let i=0;i<NCr;i++){const ax=i%2,o=wr()<.5?-2.4:2.4,c={x:ax?(Math.floor(wr()*14)-7)*56+o:(wr()-.5)*760,z:ax?(wr()-.5)*440:(Math.floor(wr()*9)-4)*56+o,y:0,r:ax?0:PI/2,st:0,thr:38+wr()*22,vx:0,vy:0,vz:0,sx:0,sz:0,rx:0,rz:0,fire:0};c.y=Hg(c.x,c.z)+.1;cars.push(c);sC(c,i);TC.setHSL(wr(),.55+wr()*.3,.3+wr()*.3);if(wr()<.25)TC.setHSL(0,0,.85);carIM.setColorAt(i,TC)}carIM.instanceColor.needsUpdate=true;
@@ -191,13 +191,13 @@ function wind(x,z,y){W.x=W.z=0;const r=vt(x,z,T.x,T.z,T.V,T.R,y);for(const q of 
  const gu=1+.1*Math.sin(T.tt*2.1+x*.05)*Math.cos(z*.04+T.tt*1.3)+.06*Math.sin(T.tt*5.3+z*.11+y*.07);W.x*=gu;W.z*=gu;
  W.y=T.g>0?T.V*.62*Math.exp(-q*q/1.2)*Math.max(0,1-(y||0)/220)*T.g-(q<.35?T.V*.08*T.g:0):0;W.s=Math.hypot(W.x,W.z);return W}
 function fd(o,x,z){let ax=x-T.x,az=z-T.z;const r=Math.hypot(ax,az)+.01;ax/=r;az/=r;const dx=ax*.5-az*.9,dz=az*.5+ax*.9,l=Math.hypot(dx,dz)+.01;o.dx=dx/l;o.dz=dz/l}
-function ignite(h,f){if((h.wood||f)&&!h.fire&&(h.col<1||f)){h.fire=1;h.burn=0;cnt.f++}}
+function ignite(h,f){if(!h.zf)return;if((h.wood||f)&&!h.fire&&(h.col<1||f)){h.fire=1;h.burn=0;cnt.f++}}
 function near(x,z,r,f){for(let a=-1;a<=1;a++)for(let b=-1;b<=1;b++){const l=hmap.get(key(x+a*56,z+b*56));if(l)for(const h of l)if(Math.hypot(h.x-x,h.z-z)<r)f(h)}}
 /* simulação */
 function reset(){exitFP();const RL0=$("rt").value==="real";T0=RL0?20251107:(Math.random()*1e9)|0;sr=mk(T0);dA.fill(0);dI=0;bursts=[];build();const e=EF[$('ef').value];
  T={S:e,seed:T0,ph:0,t:0,tt:0,s:0,x:0,z:0,vx:0,vz:0,V:0,R:0,hf:0,g:0,wc:0,ln:4,vk:RL0?1:.92+sr()*.16,rk:RL0?1.1:.8+sr()*.45,v0:RL0?15:11+sr()*5,wa:RL0?3:6+sr()*14,f1:sr()*6,f2:sr()*6,f3:sr()*6,dur:DUR0.map(d=>d*(RL0?1:.85+sr()*.3)),sat:[]};
  for(let i=0,n=RL0?0:Math.floor(sr()*4);i<n;i++)T.sat.push({a:sr()*6.28,w:(.12+sr()*.22)*(sr()<.12?-1:1),rd:1.05+sr()*.4,x:0,z:0,V:0,R:0});
- routeAt(0,RO);T.dur[5]=Math.max(T.dur[5],RL*.9/T.v0-T.dur[1]-T.dur[2]-T.dur[3]-T.dur[4]);T.x=RO.x;T.z=RO.z;cnt={t:0,p:0,h:0,f:0,u:0,b:0};for(let i=0;i<DN;i++)if(!dA[i])debIM.setMatrixAt(i,Zm);[spk,fir,smk,wat].forEach(r=>r.life.fill(0));run=false;flash=0;bolt.visible=false;if(!dm)home()}
+ routeAt(0,RO);T.dur[5]=Math.max(T.dur[5],RL*.9/T.v0-T.dur[1]-T.dur[2]-T.dur[3]-T.dur[4]);T.x=RO.x;T.z=RO.z;cnt={t:0,p:0,h:0,f:0,u:0,b:0};for(let i=0;i<DN;i++)if(!dA[i])debIM.setMatrixAt(i,Zm);[spk,fir,smk,wat].forEach(r=>{r.life.fill(0);r.o.geometry.attributes.color.array.fill(0);r.o.geometry.attributes.color.needsUpdate=true});run=false;flash=0;bolt.visible=false;if(!dm)home()}
 let T0,sr,dm=0;
 function home(){cp.set(-100,70,330);yaw=-2.55;pit=-.12}
 function tstep(dt){const p=T.ph,S=T.S,vmax=S[1]*T.vk,R0=S[2]*T.rk;T.t+=dt;T.tt+=dt;const u=T.t/(T.dur[p]||1);
@@ -221,7 +221,7 @@ function physics(dt){CUL=(T.R*5+80)**2;vib(dt);
   if(t.fire>0){t.fire-=dt;wtop(t,1,A);for(let k=0;k<2;k++)emit(fir,A.x,Math.max(.4,A.y),A.z,(Math.random()-.5)*2,4+Math.random()*5,(Math.random()-.5)*2,.9+Math.random()*.6,[1,.5+Math.random()*.3,.1]);if(Math.random()<.4)emit(smk,A.x,A.y+1,A.z,0,7,0,2.5,[.16,.16,.17]);if(Math.random()<dt*.35)near(A.x,A.z,16,ignite)}});
  houses.forEach((h,i)=>{if(h.fire!==1&&!(h.fz>0)&&!(h.col>0&&h.col<1)&&(h.x-T.x)**2+(h.z-T.z)**2>CUL)return;let ch=0;wind(h.x,h.z,0);const w=W.s+h.ex;
   if(h.roof&&w>h.tr){h.roof=0;ch=1;if(!h.cnt){h.cnt=1;cnt.h++}spw(h.x,h.h+1,h.z,h.w*.5,.15,h.d*.5,h.rc,3,h.w*.4);spw(h.x,h.h,h.z,.4,.3,2,0x8a6a48,h.wood?6:2,h.w*.5)}
-  if(!h.col&&w>h.tw&&!(h.fp&&h.wood&&h.fly)){h.col=.01;leak(h.x,h.z,.6);ch=1;if(h.roof){h.roof=0}if(!h.cnt){h.cnt=1;cnt.h++}spw(h.x,h.h*.6,h.z,.5,.4,1.6,h.cc.getHex(),h.wood?16:10,h.w);spw(h.x,h.h*.6,h.z,.5,.5,.5,0xb0a89a,6,h.w);panels(h);if(Math.random()<(h.wood?.55:.25))h.fz=1.5+Math.random()*14}
+  if(!h.col&&w>h.tw&&!(h.fp&&h.wood&&h.fly)){h.col=.01;lkH(h);ch=1;if(h.roof){h.roof=0}if(!h.cnt){h.cnt=1;cnt.h++}spw(h.x,h.h*.6,h.z,.5,.4,1.6,h.cc.getHex(),h.wood?16:10,h.w);spw(h.x,h.h*.6,h.z,.5,.5,.5,0xb0a89a,6,h.w);panels(h);if(Math.random()<(h.wood?.55:.25))h.fz=1.5+Math.random()*14}
   if(h.fz>0){h.fz-=dt;if(h.fz<=0)ignite(h,1)}
   if(h.col&&h.col<1){h.col=Math.min(1,h.col+dt*.8);h.hs=1-h.col*.88;ch=1}
   if(h.fire===1){h.burn+=dt;h.cc.lerp(TC.set(0x1a1612),dt*.07);wallsIM.setColorAt(i,h.cc);wallsIM.instanceColor.needsUpdate=true;
@@ -229,11 +229,11 @@ function physics(dt){CUL=(T.R*5+80)**2;vib(dt);
    if(Math.random()<.5)emit(smk,h.x,h.h+3,h.z,(Math.random()-.5)*3+T.vx*.1,7+Math.random()*4,(Math.random()-.5)*3,3,[.16,.16,.17]);
    if(h.burn>26&&!h.col){h.col=.01;if(h.roof){h.roof=0}}if(Math.random()<dt*.1)near(h.x,h.z,24,n=>{if(Math.random()<.3)ignite(n)});if(h.burn>55)h.fire=2}
   if(ch)sH(h,i)});
- if(T.V>25&&Math.random()<dt*.7){const h=houses[(Math.random()*houses.length)|0];if(Math.hypot(h.x-T.x,h.z-T.z)<T.R*2.2)leak(h.x+(Math.random()-.5)*20,h.z+(Math.random()-.5)*20,1)}
+ if(T.V>25&&Math.random()<dt*.7){const h=houses[(Math.random()*houses.length)|0];if(Math.hypot(h.x-T.x,h.z-T.z)<T.R*2.2)lkH(h)}
  cars.forEach((c,i)=>{if(!c.st&&!c.fire&&(c.x-T.x)**2+(c.z-T.z)**2>CUL)return;wind(c.x,c.z,c.y);if(!c.st&&W.s>c.thr)c.st=1;if(!c.st)return;const g0=Hg(c.x,c.z)+.1,up=c.y>g0+.3,k=up?.4:.15;
   aero(c.vx,c.vy,c.vz,.012,.004,c.y,g0,dt);c.vx+=AC.x*dt;c.vy+=AC.y*dt;c.vz+=AC.z*dt;c.x+=c.vx*dt;c.y+=c.vy*dt;c.z+=c.vz*dt;
   if(up&&W.s>c.thr*1.2){c.sx+=(Math.random()-.5)*8*dt;c.sz+=(Math.random()-.5)*8*dt;c.r+=dt*(1+W.s*.02)}c.rx+=c.sx*dt;c.rz+=c.sz*dt;
-  if(c.y<g0){c.y=g0;if(c.vy<-6){spw(c.x,c.y+.5,c.z,.4,.4,.4,0x888888,3,1.5);if(!c.fire&&Math.random()<.15)c.fire=12+Math.random()*14}c.vy=c.vy<0?-c.vy*.2:0;const f=Math.pow(.96,dt*60);c.vx*=f;c.vz*=f;c.sx*=f;c.sz*=f;c.rx*=.9;c.rz*=.9}
+  if(c.y<g0){c.y=g0;if(c.vy<-6){spw(c.x,c.y+.5,c.z,.4,.4,.4,0x888888,3,1.5);if(!c.fire&&inZ(c.x,c.z)&&Math.random()<.12)c.fire=12+Math.random()*14}c.vy=c.vy<0?-c.vy*.2:0;const f=Math.pow(.96,dt*60);c.vx*=f;c.vz*=f;c.sx*=f;c.sz*=f;c.rx*=.9;c.rz*=.9}
   if(c.fire>0){c.fire-=dt;emit(fir,c.x,c.y+1,c.z,(Math.random()-.5)*2,4+Math.random()*4,(Math.random()-.5)*2,.9+Math.random()*.5,[1,.5,.1]);if(Math.random()<.3)emit(smk,c.x,c.y+2,c.z,0,6,0,2.5,[.16,.16,.17])}
   sC(c,i)});
  cowGo(dt);if(fp.on)fpStep(dt);
@@ -249,11 +249,11 @@ function physics(dt){CUL=(T.R*5+80)**2;vib(dt);
   strike(x,Hg(x,z),z);flash=$('rt').value==='real'?.35:.8+Math.random()*.2;near(x,z,13,n=>{if(Math.random()<.5)ignite(n)});trees.forEach(t=>{if(!t.st&&Math.hypot(t.x-x,t.z-z)<6&&Math.random()<.5)t.thr=0})}}
  wires.forEach(w=>{if(w.spk>0){w.spk-=dt;if(Math.random()<.5){const x=(w.a.x+w.b.x)/2;spark(x,.6,w.a.z+w.s*.6,w)}}});
  for(let k=bursts.length-1;k>=0;k--){const b=bursts[k];b.t-=dt;if(b.t>0)continue;if(!b.on){b.on=1;cnt.b++}b.dur-=dt;if(b.dur<=0){bursts.splice(k,1);continue}
-  for(let j=0;j<2;j++)emit(wat,b.x,Hg(b.x,b.z)+.3,b.z,(Math.random()-.5)*4,(9+Math.random()*10)*b.k,(Math.random()-.5)*4,1.2+Math.random()*.8,[.55,.75,1])}
+  emit(wat,b.x,Hg(b.x,b.z)+.3,b.z,(Math.random()-.5)*2.2,(11+Math.random()*9)*b.k,(Math.random()-.5)*2.2,1.3+Math.random()*.7,[.4,.6,.9])}
  stepR(spk,dt,6);stepR(fir,dt,-2);stepR(smk,dt,-1);stepR(wat,dt,14)}
 function ripT(t,i){t.st=3;cnt.u++;trunkIM.setMatrixAt(i,Zm);crownIM.setMatrixAt(i,Zm);trunkIM.instanceMatrix.needsUpdate=crownIM.instanceMatrix.needsUpdate=true;
- spw(t.x,t.y+3,t.z,.5,.5,3.6*t.s,0x5b4430,2,2);spw(t.x,t.y+4,t.z,2.2*t.s,2.2*t.s,2.2*t.s,0x2f6b2c,4,3);spw(t.x,t.y+.5,t.z,1.2,.8,1.2,0x4a3a28,1,1);leak(t.x,t.z,.25)}
-function fallP(t,i,mode,dx,dz){cnt.p++;t.spark=10+Math.random()*14;if(Math.random()<.3)t.fire=14+Math.random()*16;
+ spw(t.x,t.y+3,t.z,.5,.5,3.6*t.s,0x5b4430,2,2);spw(t.x,t.y+4,t.z,2.2*t.s,2.2*t.s,2.2*t.s,0x2f6b2c,4,3);spw(t.x,t.y+.5,t.z,1.2,.8,1.2,0x4a3a28,1,1);0}
+function fallP(t,i,mode,dx,dz){cnt.p++;t.spark=10+Math.random()*14;if(inZ(t.x,t.z)&&Math.random()<.2)t.fire=14+Math.random()*16;
  if(mode===3){t.st=3;poleIM.setMatrixAt(i,Zm);poleIM.instanceMatrix.needsUpdate=true;spw(t.x,t.y+4,t.z,.3,.3,4.2,0x6b5a45,2,3)}
  else{t.st=1;if(dx||dz){t.dx=dx;t.dz=dz}else fd(t,t.x,t.z);spw(t.x,t.y+8,t.z,.2,.2,1.5,0x6b5a45,2,2)}
  for(const k of t.nb){const n=poles[k];if(n.st===0&&!n.pend&&Math.random()<.6){n.pend=.5+Math.random()*1.4;const ex=t.x-n.x,ez=t.z-n.z,l=Math.hypot(ex,ez)||1;n.pdx=ex/l;n.pdz=ez/l}}}
@@ -453,6 +453,12 @@ function cowGo(dt){const c=cow,p=c.p,v=c.v,dx=p.x-T.x,dz=p.z-T.z,d=Math.hypot(dx
 function CLT(){const c=document.createElement('canvas');c.width=c.height=128;const x=c.getContext('2d');for(let i=0;i<60;i++){const r=9+Math.random()*20,px=64+(Math.random()-.5)*44,py=64+(Math.random()-.5)*44,g=x.createRadialGradient(px,py,0,px,py,r);g.addColorStop(0,'rgba(255,255,255,.3)');g.addColorStop(1,'rgba(255,255,255,0)');x.fillStyle=g;x.fillRect(0,0,128,128)}return new THREE.CanvasTexture(c)}
 let vbT=0;function vib(dt){if(T.ph<2||T.ph>7||$('rt').value!=='real')return;vbT-=dt;if(vbT>0)return;vbT=.12+Math.random()*1.6;flash=Math.max(flash,.22+Math.random()*.3);if(Math.random()<.5)setTimeout(()=>{flash=Math.max(flash,.18+Math.random()*.25)},70+Math.random()*90)}
 {const m=document.createElement('button');m.id='mbtn';m.textContent='Menu';$('ui').appendChild(m);m.onclick=()=>document.body.classList.toggle('mo')}
+
+let ZN={x:0,z:0,r:140};
+function inZ(x,z){return Math.hypot(x-ZN.x,z-ZN.z)<ZN.r}
+function lkH(h){if(h.zw&&!h.lk){h.lk=1;leak(h.x,h.z,1)}}
+function zoneInit(){const q=mk((T0+777)|0);routeAt(RL*(.15+q()*.5),RO);const o=(q()-.5)*180;ZN={x:RO.x-RO.dz*o,z:RO.z+RO.dx*o,r:110+q()*60};
+ for(const h of houses){h.zf=0;h.zw=0;h.lk=0;if(inZ(h.x,h.z)&&h.wood){const p=.1+q()*.15;h.zf=q()<p?1:0;h.zw=q()<p?1:0}else h.zw=q()<.1?1:0}}
 const fe=$('fase');let last=performance.now(),acc=0;setRoute(realR);reset();
 (function loop(now){requestAnimationFrame(loop);if(!on)return;const dt=Math.min(.05,(now-last)/1000||.016);last=now;camstep(dt);
  if(run){tstep(dt);physics(dt)}if(flash>0)flash=Math.max(0,flash-dt*2.2);perf(dt);if(++frm%3===0)updWires();draw();rt();ren.render(scene,cam);
