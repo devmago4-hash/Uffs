@@ -39,3 +39,6 @@ bash run-termux.sh
 
 ## 9. Incêndios e vazamentos
 Uma zona circular (raio de 110 a 170 m, perto da trajetória) é sorteada com semente. Nela, cada casa de madeira tem 10 a 25% de chance de foco de incêndio e de água. Nas demais casas, só 10% de chance de rompimento de tubulação, com jato de água para cima. Postes e carros só pegam fogo dentro da zona. No máximo 8 jatos ficam ativos ao mesmo tempo.
+
+## 10. Visual unificado
+A estética das nuvens (tons azul-acinzentados, transições suaves) foi estendida à cena toda: luz ambiente e solar mais frias, névoa atmosférica azulada que aumenta com a tempestade, variação de cor por ruído com sombras azuladas nas superfícies e vinheta suave. Para mais nitidez: antialiasing (MSAA), resolução inicial maior (adaptativa ao FPS) e filtragem anisotrópica nas texturas.
