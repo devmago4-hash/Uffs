@@ -159,7 +159,7 @@ function build(){wr=mk(11);houses=[];trees=[];poles=[];wires=[];hmap=new Map();
  const pal=[0xe8dcc4,0xcfe0c8,0xf0d9a0,0xc3cfdc,0xe9c9c0],rw=()=>wr();
  for(let i=-7;i<7;i++)for(let k=-4;k<4;k++){const cx=i*56+28,cz=k*56+28;const bigb=rw()<.1;for(const[ox,oz]of(bigb?[[0,0]]:[[-13,-11],[13,-11],[0,12]])){if(!bigb&&rw()<.14)continue;const wood=!bigb&&rw()<.42,h={x:cx+ox+(rw()-.5)*4,z:cz+oz+(rw()-.5)*3,w:bigb?30+rw()*8:9+rw()*5,d:bigb?20+rw()*6:8+rw()*4,h:bigb?5+rw()*2:3+rw()*1.2,wood,tr:(wood?33:40)+rw()*13+(bigb?10:0),tw:(wood?50:62)+rw()*20+(bigb?14:0),ex:0,fly:rw()<.5,fp:0,roof:1,hs:1,col:0,fire:0,burn:0,cnt:0,cc:new THREE.Color(wood?0x8a6a48:pal[(rw()*5)|0]),rc:wood?0x7d8084:(rw()<.7?0xa4543a:0x8d8f93)};houses.push(h);const kk=key(h.x,h.z);if(!hmap.has(kk))hmap.set(kk,[]);hmap.get(kk).push(h)}}
  for(let i=0;i<NTm;i++){let x,z,ok=0;for(let t=0;t<9&&!ok;t++){const tn=i<230;x=tn?(rw()-.5)*820:(rw()-.5)*1700;z=tn?(rw()-.5)*480:(rw()-.5)*1300-150;
-  const st=((x%56)+56)%56<6||((z%56)+56)%56<6;ok=!st&&z<460&&(tn||Math.abs(x)>430||Math.abs(z)>270)&&!houses.some(h=>Math.abs(h.x-x)<h.w/2+3&&Math.abs(h.z-z)<h.d/2+3)}
+  const mx=((x%56)+56)%56,mz=((z%56)+56)%56,st=Math.abs(x)<430&&Math.abs(z)<262&&(Math.min(mx,56-mx)<8||Math.min(mz,56-mz)<8);ok=!st&&z<460&&!RU.some(r=>Math.abs(r[0]-x)<r[2]/2+5&&Math.abs(r[1]-z)<r[3]/2+5)&&Math.hypot(x-610,z-105)>10&&(tn||Math.abs(x)>430||Math.abs(z)>270)&&!houses.some(h=>Math.abs(h.x-x)<h.w/2+3&&Math.abs(h.z-z)<h.d/2+3)}
   if(ok)trees.push({x,y:Hg(x,z),z,s:.8+rw()*.9,thr:24+rw()*26,st:0,p:0,dx:0,dz:0,g:.7+rw()*.5,up:rw()<.35})}
  for(const zs of[-112,0,112]){const st=poles.length;for(let x=-392;x<=392;x+=28)poles.push({x,y:0,z:zs+4,thr:30+rw()*20,st:0,p:0,dx:0,dz:0,spark:0,fire:0,pend:0,pdx:0,pdz:0,nb:[]});
   for(let i=st;i<poles.length;i++)poles[i].nb=[i>st?i-1:-1,i<poles.length-1?i+1:-1].filter(k=>k>=0);for(let i=st;i<poles.length-1;i++)for(const s of[-1,1])wires.push({a:poles[i],b:poles[i+1],s,cut:0,th:46+rw()*14,spk:0})}
@@ -226,15 +226,15 @@ function physics(dt){
   if(ch)sH(h,i)});
  if(T.V>25&&Math.random()<dt*.7){const h=houses[(Math.random()*houses.length)|0];if(Math.hypot(h.x-T.x,h.z-T.z)<T.R*2.2)leak(h.x+(Math.random()-.5)*20,h.z+(Math.random()-.5)*20,1)}
  cars.forEach((c,i)=>{wind(c.x,c.z,c.y);if(!c.st&&W.s>c.thr)c.st=1;if(!c.st)return;const g0=Hg(c.x,c.z)+.1,up=c.y>g0+.3,k=up?.4:.15;
-  c.vx+=(W.x-c.vx)*k*dt;c.vz+=(W.z-c.vz)*k*dt;c.vy+=(-9.8+(W.y*.9-c.vy)*.35)*dt;c.x+=c.vx*dt;c.y+=c.vy*dt;c.z+=c.vz*dt;
+  aero(c.vx,c.vy,c.vz,.012,.004,c.y,g0,dt);c.vx+=AC.x*dt;c.vy+=AC.y*dt;c.vz+=AC.z*dt;c.x+=c.vx*dt;c.y+=c.vy*dt;c.z+=c.vz*dt;
   if(up&&W.s>c.thr*1.2){c.sx+=(Math.random()-.5)*8*dt;c.sz+=(Math.random()-.5)*8*dt;c.r+=dt*(1+W.s*.02)}c.rx+=c.sx*dt;c.rz+=c.sz*dt;
-  if(c.y<g0){c.y=g0;if(c.vy<-6){spw(c.x,c.y+.5,c.z,.4,.4,.4,0x888888,3,1.5);if(!c.fire&&Math.random()<.15)c.fire=12+Math.random()*14}c.vy=c.vy<0?-c.vy*.2:0;const f=Math.pow(.9,dt*60);c.vx*=f;c.vz*=f;c.sx*=f;c.sz*=f;c.rx*=.9;c.rz*=.9}
+  if(c.y<g0){c.y=g0;if(c.vy<-6){spw(c.x,c.y+.5,c.z,.4,.4,.4,0x888888,3,1.5);if(!c.fire&&Math.random()<.15)c.fire=12+Math.random()*14}c.vy=c.vy<0?-c.vy*.2:0;const f=Math.pow(.96,dt*60);c.vx*=f;c.vz*=f;c.sx*=f;c.sz*=f;c.rx*=.9;c.rz*=.9}
   if(c.fire>0){c.fire-=dt;emit(fir,c.x,c.y+1,c.z,(Math.random()-.5)*2,4+Math.random()*4,(Math.random()-.5)*2,.9+Math.random()*.5,[1,.5,.1]);if(Math.random()<.3)emit(smk,c.x,c.y+2,c.z,0,6,0,2.5,[.16,.16,.17])}
   sC(c,i)});
  cowStep(dt);if(fp.on)fpStep(dt);
  /* detritos */
- for(let i=0;i<DN;i++){if(!dA[i])continue;const x=dP[i*3],y=dP[i*3+1],z=dP[i*3+2],g0=Hg(x,z);wind(x,z,y);if(dA[i]===2){if(W.s<dTh[i])continue;dA[i]=1;dV[i*3+1]=3}const vol=dC[i*3]*dC[i*3+1]*dC[i*3+2],k=Math.min(2.5,dK[i]/Math.max(.3,Math.cbrt(vol)))*(y<g0+.6?.4:1);
-  dV[i*3]+=(W.x-dV[i*3])*k*dt;dV[i*3+2]+=(W.z-dV[i*3+2])*k*dt;dV[i*3+1]+=(-9.8+(W.y-dV[i*3+1])*k*1.3)*dt;
+ for(let i=0;i<DN;i++){if(!dA[i])continue;const x=dP[i*3],y=dP[i*3+1],z=dP[i*3+2],g0=gnd(x,z,y);wind(x,z,y);if(dA[i]===2){if(W.s<dTh[i])continue;dA[i]=1;dV[i*3+1]=3}const vol=dC[i*3]*dC[i*3+1]*dC[i*3+2],k=dK[i]/Math.max(.3,Math.cbrt(vol));
+  aero(dV[i*3],dV[i*3+1],dV[i*3+2],k*.045,k*.012*(dC[i*3+1]<.5?1.4:.5),y,g0,dt);dV[i*3]+=AC.x*dt;dV[i*3+1]+=AC.y*dt;dV[i*3+2]+=AC.z*dt;
   for(let a=0;a<3;a++){dP[i*3+a]+=dV[i*3+a]*dt;dR[i*3+a]+=dS[i*3+a]*dt}
   if(dP[i*3+1]<g0+.2){dP[i*3+1]=g0+.2;if(dV[i*3+1]<0)dV[i*3+1]*=-.25;const f=Math.pow(.88,dt*60);dV[i*3]*=f;dV[i*3+2]*=f;for(let a=0;a<3;a++)dS[i*3+a]*=f}
   const sp=Math.hypot(dV[i*3],dV[i*3+2]);if(sp>18&&y<g0+9){const l=hmap.get(key(x,z));if(l)for(const h of l)if(h.col<1&&Math.abs(x-h.x)<h.w/2+1&&Math.abs(z-h.z)<h.d/2+1&&y<h.h+3){h.ex=Math.min(60,h.ex+sp*Math.cbrt(vol)*.35);dV[i*3]*=.5;dV[i*3+2]*=.5}}}
@@ -382,7 +382,7 @@ a(2.2,1,.9,0,1.1,0,0xf2f2f2);a(.8,.7,.7,1.4,1.4,0,0xf2f2f2);a(.5,.3,.5,1.8,1.2,0
 for(const[x,z]of[[-.8,-.3],[-.8,.3],[.8,-.3],[.8,.3]])a(.22,.8,.22,x,.4,z,0xeeeeee);cow.g.scale.setScalar(1.3);scene.add(cow.g)}
 function cowReset(){cow.fly=0;cow.v.set(0,0,0);cow.p.set(610,Hg(610,105)+.8,105);cow.g.rotation.set(0,1.2,0);cow.g.position.copy(cow.p)}
 function cowStep(dt){const c=cow,p=c.p,v=c.v;wind(p.x,p.z,p.y);if(!c.fly&&W.s>38)c.fly=1;
- if(c.fly){const k=.5;v.x+=(W.x-v.x)*k*dt;v.z+=(W.z-v.z)*k*dt;v.y+=(-9.8+(W.y*1.1-v.y)*k)*dt;p.addScaledVector(v,dt);
+ if(c.fly){aero(v.x,v.y,v.z,.01,.004,p.y,Hg(p.x,p.z),dt);v.x+=AC.x*dt;v.y+=AC.y*dt;v.z+=AC.z*dt;p.addScaledVector(v,dt);
   c.g.rotation.x+=.8*dt;c.g.rotation.z+=1.1*dt;c.g.rotation.y+=.5*dt;
   const g0=Hg(p.x,p.z)+.8;if(p.y<g0){p.y=g0;v.y=Math.max(0,v.y)*-.2;v.x*=.9;v.z*=.9}}
  c.g.position.copy(p)}
@@ -422,6 +422,10 @@ const H=CH*(p<5?1:Math.max(.05,T.hf));U.uH.value=H;U.uR.value=T.R;U.uRc.value=2.
 U.uC.value.set(T.x,0,T.z);U.uY0.value=Hg(T.x,T.z)-1;rm.position.set(T.x,U.uY0.value,T.z);rm.scale.set(U.uRc.value,H,U.uRc.value);
 U.uCond.value=sm(.2*PHY.spread,1.3*PHY.spread,dT);U.uDust.value=Math.min(1,T.g*T.V/45);U.uFl.value=flash;
 U.uSky.value.copy(sky);U.uSunD.value.copy(sun.position).normalize();U.uSunI.value=sun.intensity/.7}
+
+const RU=[[575,70,16,10],[655,175,11,8],[540,165,10,8]],AC={x:0,y:0,z:0};
+function aero(vx,vy,vz,bq,lq,y,g0,dt){const rx=W.x-vx,ry=W.y-vy,rz=W.z-vz,hs=Math.hypot(rx,rz),dg=Math.min(.9/dt,bq*Math.hypot(rx,ry,rz)),lf=lq*hs*hs*Math.max(0,1-(y-g0)/120);AC.x=rx*dg;AC.y=-9.8+ry*dg+lf;AC.z=rz*dg}
+function gnd(x,z,y){let g=Hg(x,z);const l=hmap.get(key(x,z));if(l)for(const h of l)if(Math.abs(x-h.x)<h.w/2&&Math.abs(z-h.z)<h.d/2){const t=h.h*h.hs+(h.roof?1.2:0);if(y>t-1.5&&t>g)g=t}return g}
 const fe=$('fase');let last=performance.now(),acc=0;setRoute(realR);reset();
 (function loop(now){requestAnimationFrame(loop);if(!on)return;const dt=Math.min(.05,(now-last)/1000||.016);last=now;camstep(dt);
  if(run){tstep(dt);physics(dt)}if(flash>0)flash=Math.max(0,flash-dt*2.2);updWires();draw();rt();ren.render(scene,cam);
