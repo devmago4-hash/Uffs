@@ -30,3 +30,9 @@ Com o Termux:X11 aberto:
 cd ~/storage/downloads/tornado-rbi-v2-final
 bash run-termux.sh
 ```
+
+## 8. Atualização 7: interface e atmosfera
+- **HUD:** só o botão "Menu" no canto superior esquerdo; ele abre e fecha as opções e os controles. Duplo toque ou F11 esconde tudo, inclusive o Menu.
+- **Nuvens:** textura pré-calculada no lugar de ruído por pixel (muito menos custo por fragmento) e mais sprites, para dar densidade interna.
+- **Atmosfera (rota real):** céu azulado e relâmpagos intranuvem silenciosos (clarões e tremulação, sem trovão), conforme os relatos do dia.
+- **Escala:** objetos em 1:1. A cidade modelada tem 840×504 m, menor que a área urbana real. A expansão com a malha real (dados do OpenStreetMap) fica como trabalho futuro.
